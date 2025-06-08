@@ -1,18 +1,91 @@
 "use client"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Camera, Settings, Play, Pause, Eye, Maximize } from "lucide-react"
-import { useState } from "react"
+import { Camera, Settings, Play, Pause, Eye, Maximize, Plus, X } from "lucide-react"
 
-const cameras = [
-  { id: 1, ip: "http://127.0.0.1:8000/main/", name: "Front Entrance", location: "Building A", status: "online", recording: true },
+function AddCameraModal({ open, onClose, onAdd }) {
+  const [ip, setIp] = useState("")
+  const [name, setName] = useState("")
+  const [location, setLocation] = useState("")
 
-]
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!ip || !name || !location) return
+    onAdd({
+      id: Date.now(),
+      ip,
+      name,
+      location,
+      status: "online",
+      recording: true,
+    })
+    setIp("")
+    setName("")
+    setLocation("")
+    onClose()
+  }
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg w-full max-w-md p-6 relative">
+        <button
+          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+          onClick={onClose}
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <h2 className="text-xl font-semibold mb-4 flex items-center">
+          <Camera className="h-5 w-5 mr-2" /> Add Camera
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Camera Name</label>
+            <input
+              className="w-full border rounded px-3 py-2 bg-muted"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              placeholder="e.g. Front Entrance"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">IP Address / Stream URL</label>
+            <input
+              className="w-full border rounded px-3 py-2 bg-muted"
+              value={ip}
+              onChange={e => setIp(e.target.value)}
+              required
+              placeholder="e.g. http://127.0.0.1:8000/main/"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Location</label>
+            <input
+              className="w-full border rounded px-3 py-2 bg-muted"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              required
+              placeholder="e.g. Building A"
+            />
+          </div>
+          <Button type="submit" className="w-full">
+            <Plus className="h-4 w-4 mr-2" /> Add Camera
+          </Button>
+        </form>
+      </div>
+    </div>
+  )
+}
 
 export default function CamerasPage() {
+  const [cameras, setCameras] = useState([])
   const [loadingStates, setLoadingStates] = useState({})
   const [errorStates, setErrorStates] = useState({})
+  const [modalOpen, setModalOpen] = useState(false)
 
   const handleImageLoad = (cameraId) => {
     setLoadingStates(prev => ({ ...prev, [cameraId]: false }))
@@ -46,20 +119,37 @@ export default function CamerasPage() {
     }
   }
 
+  const handleAddCamera = (camera) => {
+    setCameras(prev => [...prev, camera])
+  }
+
   return (
     <div className="space-y-6">
+      <AddCameraModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onAdd={handleAddCamera}
+      />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Elephant Detection Cameras</h1>
           <p className="text-muted-foreground">Monitor and manage your elephant detection cameras</p>
         </div>
-        <Button>
+        <Button onClick={() => setModalOpen(true)}>
           <Camera className="h-4 w-4 mr-2" />
           Add Camera
         </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {cameras.length === 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>No Cameras Added</CardTitle>
+              <CardDescription>Add a camera to start monitoring.</CardDescription>
+            </CardHeader>
+          </Card>
+        )}
         {cameras.map((camera) => (
           <Card key={camera.id} className="overflow-hidden">
             <CardHeader className="pb-3">
@@ -78,7 +168,6 @@ export default function CamerasPage() {
               <div className="aspect-video bg-muted rounded-lg overflow-hidden relative group">
                 {camera.ip && camera.status === "online" ? (
                   <>
-                    {/* Loading indicator */}
                     {loadingStates[camera.id] && (
                       <div className="absolute inset-0 bg-muted flex items-center justify-center z-10">
                         <div className="text-center">
@@ -87,16 +176,14 @@ export default function CamerasPage() {
                         </div>
                       </div>
                     )}
-                    
-                    {/* Error state */}
                     {errorStates[camera.id] && (
                       <div className="absolute inset-0 bg-muted flex items-center justify-center z-10">
                         <div className="text-center">
                           <Camera className="h-8 w-8 text-red-500 mx-auto mb-2" />
                           <p className="text-sm text-red-500 mb-2">Stream unavailable</p>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => refreshStream(camera)}
                           >
                             Retry
@@ -104,8 +191,6 @@ export default function CamerasPage() {
                         </div>
                       </div>
                     )}
-
-                    {/* Live stream */}
                     <img
                       id={`camera-${camera.id}`}
                       src={camera.ip}
@@ -114,12 +199,10 @@ export default function CamerasPage() {
                       onLoad={() => handleImageLoad(camera.id)}
                       onError={() => handleImageError(camera.id)}
                       onLoadStart={() => handleImageLoadStart(camera.id)}
-                      style={{ 
+                      style={{
                         display: errorStates[camera.id] ? 'none' : 'block'
                       }}
                     />
-
-                    {/* Live indicator */}
                     {camera.recording && !errorStates[camera.id] && (
                       <div className="absolute top-2 right-2">
                         <div className="flex items-center space-x-1 bg-red-500 text-white px-2 py-1 rounded text-xs">
@@ -128,8 +211,6 @@ export default function CamerasPage() {
                         </div>
                       </div>
                     )}
-
-                    {/* Hover overlay with controls */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <div className="flex space-x-2">
                         <Button
@@ -152,7 +233,6 @@ export default function CamerasPage() {
                     </div>
                   </>
                 ) : (
-                  // Offline camera
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
                       <Camera className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
@@ -163,31 +243,30 @@ export default function CamerasPage() {
                   </div>
                 )}
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className={`w-2 h-2 rounded-full ${
-                    camera.recording && camera.status === "online" 
-                      ? "bg-red-500 animate-pulse" 
+                    camera.recording && camera.status === "online"
+                      ? "bg-red-500 animate-pulse"
                       : "bg-gray-400"
                   }`}></div>
                   <span className="text-sm text-muted-foreground">
-                    {camera.recording && camera.status === "online" 
-                      ? "Monitoring" 
+                    {camera.recording && camera.status === "online"
+                      ? "Monitoring"
                       : "Not Active"}
                   </span>
                 </div>
                 <div className="flex space-x-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => openFullScreen(camera)}
                     disabled={!camera.ip || camera.status === "offline"}
                   >
                     <Eye className="h-3 w-3" />
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => refreshStream(camera)}
                     disabled={!camera.ip || camera.status === "offline"}
@@ -199,8 +278,6 @@ export default function CamerasPage() {
                   </Button>
                 </div>
               </div>
-
-              {/* Camera info */}
               {camera.ip && (
                 <div className="text-xs text-muted-foreground">
                   <p>Stream: {camera.ip}</p>
@@ -211,13 +288,11 @@ export default function CamerasPage() {
           </Card>
         ))}
       </div>
-
-      {/* Stream Info Section */}
       <div className="mt-8 p-4 bg-muted/30 rounded-lg">
         <h3 className="text-lg font-semibold mb-2">Stream Information</h3>
         <div className="grid gap-2 text-sm">
           <p><strong>Active Streams:</strong> {cameras.filter(c => c.status === "online").length} of {cameras.length}</p>
-          <p><strong>Main Detection Camera:</strong> Front Entrance (Building A)</p>
+          <p><strong>Main Detection Camera:</strong> {cameras[0] ? `${cameras[0].name} (${cameras[0].location})` : "None"}</p>
           <p><strong>Stream Format:</strong> MJPEG over HTTP</p>
           <p><strong>Refresh Rate:</strong> ~30 FPS</p>
         </div>
