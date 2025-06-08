@@ -201,7 +201,7 @@ def save_detection(frame, results, camera_id, camera_location, confidence, class
         "image_path": snapshot_path,
         "image_url": f"/snapshots/{snapshot_filename}"
     }
-    
+    print(detection_data)
     return detection_data
     # save to the convex db too
 
