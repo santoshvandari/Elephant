@@ -10,8 +10,8 @@ from datetime import datetime
 import threading
 import time
 from dotenv import load_dotenv
-import asyncio
 from contextlib import asynccontextmanager
+import hashlib
 
 load_dotenv()
 
@@ -19,20 +19,18 @@ DataPostAPIROUTE = os.getenv("DATABASE_POST_API_ROUTE")
 
 # Global variables
 model = None
-camera_alert_states = {}
-frame_skip = 2  # Process every 2nd frame for performance
 active_cameras = {}
 detection_results = []
+recent_detections = set()  # Track recent detection hashes
+detection_cooldown = 5  # Seconds to prevent duplicate detections
 
 # Create snapshots directory
 snapshot_dir = "snapshots"
 if not os.path.exists(snapshot_dir):
     os.makedirs(snapshot_dir)
 
-# Initialize model and start camera monitoring
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     global model
     try:
         model = YOLO("./model/best.pt")
@@ -41,12 +39,9 @@ async def lifespan(app: FastAPI):
         print(f"Failed to load YOLO model: {str(e)}")
         raise
     
-    # Start camera monitoring
     await start_camera_monitoring()
-    
     yield
     
-    # Shutdown
     print("Shutting down camera monitoring...")
     for camera_id, cap in active_cameras.items():
         if cap:
@@ -62,16 +57,63 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files for snapshots
 app.mount("/snapshots", StaticFiles(directory="snapshots"), name="snapshots")
 
+async def upload_to_convex(data):
+    pass
+
+async def upload_to_imgbb(imgpath):
+    """Upload image to imgbb and return URL"""
+    try:
+        with open(imgpath, 'rb') as img_file:
+            response = requests.post(
+                "https://api.imgbb.com/1/upload",
+                params={"key": os.getenv("IMGBB_API_KEY")},
+                files={"image": img_file}
+            )
+            response.raise_for_status()
+            return response.json().get("data", {}).get("url", "")
+    except Exception as e:
+        print(f"Failed to upload image to imgbb: {e}")
+        return ""
+
+def create_detection_hash(frame, boxes):
+    """Create a hash to identify similar detections"""
+    # Use frame dimensions and box coordinates to create unique hash
+    height, width = frame.shape[:2]
+    box_data = ""
+    
+    for box in boxes:
+        x1, y1, x2, y2 = box.xyxy[0]
+        box_data += f"{int(x1)}{int(y1)}{int(x2)}{int(y2)}"
+    
+    combined_data = f"{width}x{height}_{box_data}_{datetime.now().strftime('%Y%m%d%H%M')}"
+    return hashlib.md5(combined_data.encode()).hexdigest()
+
+def is_duplicate_detection(detection_hash):
+    """Check if this detection already exists recently"""
+    current_time = time.time()
+    
+    # Clean old hashes (older than cooldown period)
+    expired_hashes = []
+    for stored_hash, timestamp in list(recent_detections):
+        if current_time - timestamp > detection_cooldown:
+            expired_hashes.append((stored_hash, timestamp))
+    
+    for expired in expired_hashes:
+        recent_detections.discard(expired)
+    
+    # Check if current hash exists
+    for stored_hash, timestamp in recent_detections:
+        if stored_hash == detection_hash:
+            return True
+    
+    return False
+
 async def start_camera_monitoring():
-    """Start monitoring all available cameras"""
-    # Define cameras to monitor (you can modify this list)
+    """Start monitoring camera"""
     cameras_config = [
-        {"id": "camera_1", "source": 0, "location": "Main Entrance"},  # Default webcam
-        # {"id": "camera_2", "source": "path/to/video.mp4", "location": "Garden Area"},  # Video file
-        # {"id": "camera_3", "source": "rtsp://camera_ip:port/stream", "location": "Back Yard"},  # IP camera
+        {"id": "camera_1", "source": 0, "location": "Main Entrance"},
     ]
     
     for camera_config in cameras_config:
@@ -80,11 +122,11 @@ async def start_camera_monitoring():
             args=(camera_config["id"], camera_config["source"], camera_config["location"]),
             daemon=True
         ).start()
-        print(f"Started monitoring {camera_config['id']} at {camera_config['location']}")
+        print(f"Started monitoring {camera_config['id']}")
 
 def monitor_camera(camera_id, camera_source, camera_location):
-    """Monitor a single camera for elephant detection"""
-    global active_cameras, camera_alert_states
+    """Monitor camera for elephant detection"""
+    global active_cameras
     
     cap = cv2.VideoCapture(camera_source)
     if not cap.isOpened():
@@ -92,17 +134,7 @@ def monitor_camera(camera_id, camera_source, camera_location):
         return
     
     active_cameras[camera_id] = cap
-    
-    # Initialize camera alert state
-    if camera_id not in camera_alert_states:
-        camera_alert_states[camera_id] = {
-            'snapshot_taken': False,
-            'last_alert_time': 0,
-            'alert_cooldown': 30  # Seconds between alerts
-        }
-    
     frame_count = 0
-    alert_state = camera_alert_states[camera_id]
     
     while True:
         success, frame = cap.read()
@@ -112,66 +144,54 @@ def monitor_camera(camera_id, camera_source, camera_location):
         
         frame_count += 1
         
-        # Process every nth frame for performance
-        if frame_count % frame_skip == 0:
+        # Process every 5th frame for performance
+        if frame_count % 5 == 0:
             try:
-                # Detect only elephants - using conf=0.8 for higher accuracy
-                results = model.predict(frame, conf=0.8, verbose=False)
-                
-                current_time = time.time()
+                results = model.predict(frame, conf=0.7, verbose=False)
                 
                 # Check for elephant detections
-                elephant_detected = False
                 for r in results:
                     if r.boxes is not None and len(r.boxes) > 0:
-                        boxes = r.boxes
-                        for box in boxes:
+                        elephant_boxes = []
+                        
+                        for box in r.boxes:
                             cls_id = int(box.cls[0])
                             confidence = float(box.conf[0])
                             class_name = model.names[cls_id]
                             
-                            # Check if detected object is an elephant
-                            if (class_name.lower() == 'elephant' and confidence > 0.8 and 
-                                not alert_state['snapshot_taken'] and 
-                                (current_time - alert_state['last_alert_time'] > alert_state['alert_cooldown'])):
-                                
-                                elephant_detected = True
+                            if class_name.lower() == 'elephant' and confidence > 0.7:
+                                elephant_boxes.append(box)
+                        
+                        if elephant_boxes:
+                            # Create detection hash
+                            detection_hash = create_detection_hash(frame, elephant_boxes)
+                            
+                            # Only save if not duplicate
+                            if not is_duplicate_detection(detection_hash):
+                                # Add to recent detections
+                                recent_detections.add((detection_hash, time.time()))
                                 
                                 # Save detection
                                 detection_data = save_detection(frame, results, camera_id, camera_location, confidence, class_name)
                                 detection_results.append(detection_data)
                                 
-                                # Update alert state
-                                alert_state['snapshot_taken'] = True
-                                alert_state['last_alert_time'] = current_time
+                                print(f"NEW ELEPHANT DETECTED! Camera: {camera_id}, Confidence: {confidence:.2f}")
                                 
-                                # Post to database if API route is configured
+                                # Upload to database
                                 if DataPostAPIROUTE:
                                     try:
-                                        resp = requests.post(f"{DataPostAPIROUTE}/elephant-detection", 
-                                                           json=detection_data, timeout=5)
-                                        if resp.status_code == 200:
-                                            print(f"Detection data posted successfully for {camera_id}")
-                                        else:
-                                            print(f"Failed to post detection data: {resp.status_code}")
+                                        requests.post(f"{DataPostAPIROUTE}/elephant-detection", 
+                                                    json=detection_data, timeout=5)
                                     except Exception as e:
-                                        print(f"Error posting to database: {str(e)}")
-                                
-                                # Reset alert flag after cooldown
-                                def reset_alert():
-                                    alert_state['snapshot_taken'] = False
-                                
-                                threading.Timer(alert_state['alert_cooldown'], reset_alert).start()
-                                break
+                                        print(f"Database upload error: {e}")
                             
             except Exception as e:
-                print(f"Error processing frame from {camera_id}: {str(e)}")
+                print(f"Error processing frame: {e}")
         
-        # Small delay to prevent excessive CPU usage
         time.sleep(0.1)
 
-def save_detection(frame, results, camera_id, camera_location, confidence, class_name):
-    """Save detection snapshot and return detection data"""
+async def save_detection(frame, results, camera_id, camera_location, confidence, class_name):
+    """Save detection snapshot"""
     timestamp = datetime.now()
     unique_id = int(timestamp.timestamp() * 1e6)
     
@@ -180,19 +200,17 @@ def save_detection(frame, results, camera_id, camera_location, confidence, class
     
     # Save snapshot
     snapshot_filename = f"elephant_{camera_id}_{unique_id}.jpg"
-    snapshot_path = os.path.join("snapshots", snapshot_filename)
+    snapshot_path = os.path.join(snapshot_dir, snapshot_filename)
     
-    success = cv2.imwrite(snapshot_path, annotated_frame)
-    if success:
-        print(f"Detection snapshot saved: {snapshot_path}")
-    else:
-        print(f"Failed to save snapshot: {snapshot_path}")
+    cv2.imwrite(snapshot_path, annotated_frame)
     
-    # Prepare detection data
-    detection_data = {
+    img_url = await upload_to_imgbb(snapshot_path)
+    if not img_url:
+        img_url = f"/snapshots/{snapshot_filename}"
+
+    data = {
         "type": "elephant_detection",
         "camera_id": camera_id,
-        "camera_name": f"Camera {camera_id}",
         "location": camera_location,
         "detected_class": class_name,
         "message": f"Elephant detected with {confidence:.1%} confidence!",
@@ -201,10 +219,8 @@ def save_detection(frame, results, camera_id, camera_location, confidence, class
         "image_path": snapshot_path,
         "image_url": f"/snapshots/{snapshot_filename}"
     }
-    print(detection_data)
-    return detection_data
-    # save to the convex db too
-
+    print(f"Saved detection: {data}")
+    await upload_to_convex(data)
 
 @app.get("/")
 async def root():
@@ -217,11 +233,11 @@ async def root():
 
 @app.get("/main/")
 async def get_main_camera_stream():
-    """Get live stream from the main camera with real-time detection"""
-    camera_id = "camera_1"  # Default main camera
+    """Get live camera stream with detection"""
+    camera_id = "camera_1"
     
     if camera_id not in active_cameras:
-        raise HTTPException(status_code=404, detail="Main camera not found or not active")
+        raise HTTPException(status_code=404, detail="Camera not found")
     
     def generate_frames():
         cap = active_cameras[camera_id]
@@ -229,70 +245,58 @@ async def get_main_camera_stream():
         while True:
             success, frame = cap.read()
             if not success:
-                print(f"Failed to read frame from {camera_id}")
                 break
             
             try:
-                # Run detection on frame for live visualization with higher confidence
+                # Run detection for live view
                 results = model.predict(frame, conf=0.5, verbose=False)
-                
-                # Draw detection boxes on frame only for elephants
                 annotated_frame = frame.copy()
                 
                 elephant_count = 0
                 for r in results:
-                    if r.boxes is not None and len(r.boxes) > 0:
-                        boxes = r.boxes
-                        for box in boxes:
+                    if r.boxes is not None:
+                        for box in r.boxes:
                             cls_id = int(box.cls[0])
                             confidence = float(box.conf[0])
                             class_name = model.names[cls_id]
                             
-                            # Only draw boxes for elephants
                             if class_name.lower() == 'elephant':
                                 elephant_count += 1
                                 
-                                # Get box coordinates
+                                # Draw bounding box
                                 x1, y1, x2, y2 = box.xyxy[0]
                                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                                 
-                                # Draw bounding box
-                                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 0, 255), 3)
                                 
                                 # Draw label
                                 label = f"Elephant: {confidence:.2f}"
-                                font = cv2.FONT_HERSHEY_SIMPLEX
-                                cv2.putText(annotated_frame, label, (x1, y1-10), font, 0.5, (0, 0, 255), 2)
+                                cv2.putText(annotated_frame, label, (x1, y1-10), 
+                                          cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
                 
-                # Add timestamp and camera info overlay
-                now = datetime.now()
-                current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+                # Add overlay info
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(annotated_frame, current_time, (10, 30), font, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
-                cv2.putText(annotated_frame, f"Camera: {camera_id}", (10, 60), font, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+                
+                cv2.putText(annotated_frame, now, (10, 30), font, 0.6, (0, 255, 0), 2)
+                cv2.putText(annotated_frame, f"Camera: {camera_id}", (10, 60), font, 0.6, (0, 255, 0), 2)
+                cv2.putText(annotated_frame, f"Total Saved: {len(detection_results)}", (10, 90), font, 0.6, (0, 255, 0), 2)
                 
                 if elephant_count > 0:
-                    cv2.putText(annotated_frame, f"ELEPHANTS DETECTED: {elephant_count}", (10, 90), font, 0.8, (0, 0, 255), 3, cv2.LINE_AA)
-                else:
-                    cv2.putText(annotated_frame, "No elephants detected", (10, 90), font, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
-                
+                    cv2.putText(annotated_frame, f"LIVE: {elephant_count}", (10, 120), font, 0.8, (0, 0, 255), 3)
+                    # Save detection snapshot
+                    save_detection(annotated_frame, results, camera_id, "Main Entrance", 
+                                    confidence=0.7, class_name="elephant")
+                                    
             except Exception as e:
-                print(f"Error in live detection: {str(e)}")
+                print(f"Live detection error: {e}")
                 annotated_frame = frame
-                # Add basic overlay even if detection fails
-                now = datetime.now()
-                current_time = now.strftime("%Y-%m-%d %H:%M:%S")
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(annotated_frame, current_time, (10, 30), font, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
-                cv2.putText(annotated_frame, f"Camera: {camera_id}", (10, 60), font, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
             
-            # Encode frame
+            # Encode and yield frame
             _, buffer = cv2.imencode('.jpg', annotated_frame)
-            frame_bytes = buffer.tobytes()
-            
             yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                   b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
             
-            time.sleep(0.033)  # ~30 FPS
+            time.sleep(0.033)
     
     return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
