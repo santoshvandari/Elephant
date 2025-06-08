@@ -61,7 +61,17 @@ app.add_middleware(
 app.mount("/snapshots", StaticFiles(directory="snapshots"), name="snapshots")
 
 async def upload_to_convex(data):
-    pass
+    try:
+        response = requests.post(
+            f"{DataPostAPIROUTE}/elephant-detection",
+            json=data,
+            timeout=5
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"Failed to upload to Convex: {e}")
+        return None
 
 async def upload_to_imgbb(imgpath):
     """Upload image to imgbb and return URL"""
