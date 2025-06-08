@@ -1,5 +1,4 @@
-from fastapi import FastAPI,status, UploadFile, File
-from fastapi.responses import HTTPException
+from fastapi import FastAPI,status, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
 import cv2
@@ -44,6 +43,7 @@ async def detect_elephant(file: UploadFile,camera: str):
                         elephant_detected = True
                         break
             if elephant_detected:
+                return {"elephant_detected": elephant_detected}
 
                 timestamp = datetime.now().isoformat()
                 resp = requests.post(f"{DataPostAPIROUTE}/elephant-detection",
