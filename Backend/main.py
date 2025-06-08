@@ -26,7 +26,10 @@ async def root():
     return {"message": "Hello World"}
 
 # Load the YOLO model
-model = YOLO("yolov8n.pt")
+try:
+    model = YOLO("./model/best.pt")  # Ensure the path to your YOLO model is correct
+except Exception as e:
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to load YOLO model: {str(e)}")
 
 @app.post("/detect/")
 async def detect_elephant(file: UploadFile,camera: str):
@@ -39,10 +42,12 @@ async def detect_elephant(file: UploadFile,camera: str):
         for result in results:
             if result.boxes:
                 for box in result.boxes:
-                    if int(box.cls[0]) == 0: # Change the class index to match the elephant class in your model
+                    if int(box.cls[0]) == 20: # Change the class index to match the elephant class in your model
                         elephant_detected = True
                         break
             if elephant_detected:
+                return {"elephant_detected": elephant_detected}
+            else:
                 return {"elephant_detected": elephant_detected}
 
                 timestamp = datetime.now().isoformat()
