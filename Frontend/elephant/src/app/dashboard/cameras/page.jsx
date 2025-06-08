@@ -1,25 +1,31 @@
 "use client"
-import { useState } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Camera, Settings, Play, Pause, Eye, Maximize, Plus, X } from "lucide-react"
+import { Camera, Play, Pause, Eye, Maximize, Plus, X, Edit2 } from "lucide-react"
 
-function AddCameraModal({ open, onClose, onAdd }) {
-  const [ip, setIp] = useState("")
-  const [name, setName] = useState("")
-  const [location, setLocation] = useState("")
+// Modal for adding or editing a camera
+function CameraModal({ open, onClose, onSubmit, initialData, isEdit }) {
+  const [ip, setIp] = useState(initialData?.ip || "")
+  const [name, setName] = useState(initialData?.name || "")
+  const [location, setLocation] = useState(initialData?.location || "")
+
+  // Reset fields when modal opens/closes or initialData changes
+  React.useEffect(() => {
+    setIp(initialData?.ip || "")
+    setName(initialData?.name || "")
+    setLocation(initialData?.location || "")
+  }, [open, initialData])
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!ip || !name || !location) return
-    onAdd({
-      id: Date.now(),
+    onSubmit({
+      ...initialData,
       ip,
       name,
       location,
-      status: "online",
-      recording: true,
     })
     setIp("")
     setName("")
@@ -39,7 +45,7 @@ function AddCameraModal({ open, onClose, onAdd }) {
           <X className="h-5 w-5" />
         </button>
         <h2 className="text-xl font-semibold mb-4 flex items-center">
-          <Camera className="h-5 w-5 mr-2" /> Add Camera
+          <Camera className="h-5 w-5 mr-2" /> {isEdit ? "Edit Camera" : "Add Camera"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -73,7 +79,7 @@ function AddCameraModal({ open, onClose, onAdd }) {
             />
           </div>
           <Button type="submit" className="w-full">
-            <Plus className="h-4 w-4 mr-2" /> Add Camera
+            <Plus className="h-4 w-4 mr-2" /> {isEdit ? "Save Changes" : "Add Camera"}
           </Button>
         </form>
       </div>
@@ -86,6 +92,8 @@ export default function CamerasPage() {
   const [loadingStates, setLoadingStates] = useState({})
   const [errorStates, setErrorStates] = useState({})
   const [modalOpen, setModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingCamera, setEditingCamera] = useState(null)
 
   const handleImageLoad = (cameraId) => {
     setLoadingStates(prev => ({ ...prev, [cameraId]: false }))
@@ -120,15 +128,44 @@ export default function CamerasPage() {
   }
 
   const handleAddCamera = (camera) => {
-    setCameras(prev => [...prev, camera])
+    setCameras(prev => [
+      ...prev,
+      {
+        ...camera,
+        id: Date.now(),
+        status: "online",
+        recording: true,
+      }
+    ])
+  }
+
+  const handleEditCamera = (updatedCamera) => {
+    setCameras(prev =>
+      prev.map(cam => cam.id === updatedCamera.id ? { ...cam, ...updatedCamera } : cam)
+    )
+  }
+
+  const openEditModal = (camera) => {
+    setEditingCamera(camera)
+    setEditModalOpen(true)
   }
 
   return (
     <div className="space-y-6">
-      <AddCameraModal
+      {/* Add Camera Modal */}
+      <CameraModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onAdd={handleAddCamera}
+        onSubmit={handleAddCamera}
+        isEdit={false}
+      />
+      {/* Edit Camera Modal */}
+      <CameraModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onSubmit={handleEditCamera}
+        initialData={editingCamera}
+        isEdit={true}
       />
       <div className="flex items-center justify-between">
         <div>
@@ -273,8 +310,12 @@ export default function CamerasPage() {
                   >
                     {camera.recording ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                   </Button>
-                  <Button size="sm" variant="outline">
-                    <Settings className="h-3 w-3" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEditModal(camera)}
+                  >
+                    <Edit2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
