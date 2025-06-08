@@ -19,19 +19,12 @@ export const addElephantData = mutation({
 });
 
 export const getAlerts = query({
-  args: {},
-  handler: async (ctx) => {
-    const alerts = await ctx.db.query("elephant_Schema").collect();
-    return alerts.map((alert) => ({
-      id: alert._id,
-      type: alert.type,
-      camera_id: alert.camera_id,
-      location: alert.location,
-      message: alert.message,
-      timestamp: new Date(alert.timestamp).toLocaleString(),
-      confidence: alert.confidence,
-      image_url: alert.image_url,
-      image_path: alert.image_path,
-    }));
+  handler: async (ctx, args) => {
+    const alerts = await ctx.db
+      .query("elephant_Schema")
+      .order("desc")
+      .collect();
+
+    return alerts;
   },
 });
