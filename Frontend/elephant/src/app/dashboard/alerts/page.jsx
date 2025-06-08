@@ -1,7 +1,14 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle, Clock, X } from "lucide-react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, CheckCircle, Clock, X } from "lucide-react";
+import AlertPage from "./AlertPage";
 
 const alerts = [
   {
@@ -49,7 +56,7 @@ const alerts = [
     status: "resolved",
     location: "Loading Dock",
   },
-]
+];
 
 export default function AlertsPage() {
   return (
@@ -57,16 +64,19 @@ export default function AlertsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Security Alerts</h1>
-          <p className="text-muted-foreground">Monitor and respond to security alerts</p>
+          <p className="text-muted-foreground">
+            Monitor and respond to security alerts
+          </p>
         </div>
         <Button>
           <CheckCircle className="h-4 w-4 mr-2" />
           Mark All Read
         </Button>
       </div>
+      <AlertPage />
 
       {/* Alert Summary */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Alerts</CardTitle>
@@ -96,10 +106,10 @@ export default function AlertsPage() {
             <div className="text-2xl font-bold text-green-600">8</div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* Alerts List */}
-      <div className="space-y-4">
+      {/* <div className="space-y-4">
         {alerts.map((alert) => (
           <Card key={alert.id} className={`${alert.severity === "high" ? "border-red-200" : ""}`}>
             <CardHeader className="pb-3">
@@ -166,7 +176,7 @@ export default function AlertsPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </div> */}
     </div>
-  )
+  );
 }
