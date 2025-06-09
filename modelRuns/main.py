@@ -12,8 +12,8 @@ alert_sound = pygame.mixer.Sound(sound_file)
 
 sound_playing = False
 sound_start_time = 0
-SOUND_DURATION = 5
-SOUND_COOLDOWN = 2
+SOUND_DURATION = 4
+SOUND_COOLDOWN = 10
 
 cap = cv2.VideoCapture(0)
 
