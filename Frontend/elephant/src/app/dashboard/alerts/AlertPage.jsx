@@ -79,7 +79,7 @@ function AlertPage() {
       <div className="flex flex-col gap-3">
         {alerts?.map((alert) => (
           <Card
-            key={alert.id}
+            key={alert._id}
             className={`${alert.confidence > 90 ? "border-red-200" : ""}`}
           >
             <CardHeader className="pb-3">
@@ -139,7 +139,7 @@ function AlertPage() {
             </CardHeader>
             <div className="flex p-4">
               <img
-                src={alert?.image_url}
+                src={process.env.NEXT_PUBLIC_BACKEND + alert?.image_path}
                 alt="Alert Image"
                 className="w-62  rounded-3xl object-cover mb-4"
               />

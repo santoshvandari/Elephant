@@ -188,7 +188,7 @@ def monitor_camera(camera_id, camera_source, camera_location):
                                 recent_detections.add((detection_hash, time.time()))
                                 
                                 # Save detection
-                                detection_data = save_detection(frame, results, camera_id, camera_location, confidence, class_name)
+                                detection_data = save_detection(frame, results, camera_id, camera_location, confidence)
                                 detection_results.append(detection_data)
                                 
                                 print(f"NEW ELEPHANT DETECTED! Camera: {camera_id}, Confidence: {confidence:.2f}")
