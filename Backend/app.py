@@ -12,18 +12,22 @@ import time
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 import hashlib
+import json
 
 load_dotenv()
 
-DataPostAPIROUTE = os.getenv("DATABASE_POST_API_ROUTE")
+DATABASE_POST_API_ROUTE= os.getenv("DATABASE_POST_API_ROUTE")
+
+if not DATABASE_POST_API_ROUTE:
+    raise ValueError("Environment variables DATABASE_POST_API_ROUTE and CONVEX_DEPLOYMENT must be set.")
+
 
 # Global variables
 model = None
 active_cameras = {}
 detection_results = []
 recent_detections = set()  # Track recent detection hashes
-detection_cooldown = 10  # Changed from 5 to 20 seconds to prevent duplicate detections
-last_alert_time = {}  # Track last alert time per camera
+detection_cooldown = 5  # Seconds to prevent duplicate detections
 
 # Create snapshots directory
 snapshot_dir = "snapshots"
@@ -61,7 +65,18 @@ app.add_middleware(
 app.mount("/snapshots", StaticFiles(directory="snapshots"), name="snapshots")
 
 async def upload_to_convex(data):
-    pass
+    try:
+        payload = json.dumps(data)
+        res=requests.post(DATABASE_POST_API_ROUTE,payload)
+        res.raise_for_status()
+        if res.status_code != status.HTTP_200_OK:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+
+        print("Data uploaded to Convex successfully")
+    except Exception as e:
+        print(f"Failed to upload to Convex: {e}")
+
+
 
 async def upload_to_imgbb(imgpath):
     """Upload image to imgbb and return URL"""
@@ -110,20 +125,6 @@ def is_duplicate_detection(detection_hash):
             return True
     
     return False
-
-def can_trigger_alert(camera_id):
-    """Check if enough time has passed since last alert for this camera"""
-    current_time = time.time()
-    
-    if camera_id not in last_alert_time:
-        return True
-    
-    time_since_last_alert = current_time - last_alert_time[camera_id]
-    return time_since_last_alert >= detection_cooldown
-
-def update_last_alert_time(camera_id):
-    """Update the last alert time for this camera"""
-    last_alert_time[camera_id] = time.time()
 
 async def start_camera_monitoring():
     """Start monitoring camera"""
@@ -178,42 +179,34 @@ def monitor_camera(camera_id, camera_source, camera_location):
                                 elephant_boxes.append(box)
                         
                         if elephant_boxes:
-                            # Check if enough time has passed since last alert
-                            if can_trigger_alert(camera_id):
-                                # Create detection hash
-                                detection_hash = create_detection_hash(frame, elephant_boxes)
+                            # Create detection hash
+                            detection_hash = create_detection_hash(frame, elephant_boxes)
+                            
+                            # Only save if not duplicate
+                            if not is_duplicate_detection(detection_hash):
+                                # Add to recent detections
+                                recent_detections.add((detection_hash, time.time()))
                                 
-                                # Only save if not duplicate
-                                if not is_duplicate_detection(detection_hash):
-                                    # Add to recent detections
-                                    recent_detections.add((detection_hash, time.time()))
-                                    
-                                    # Update last alert time
-                                    update_last_alert_time(camera_id)
-                                    
-                                    # Save detection
-                                    detection_data = save_detection(frame, results, camera_id, camera_location, confidence, class_name)
-                                    detection_results.append(detection_data)
-                                    
-                                    print(f"NEW ELEPHANT DETECTED! Camera: {camera_id}, Confidence: {confidence:.2f}")
-                                    
-                                    # Upload to database
-                                    if DataPostAPIROUTE:
-                                        try:
-                                            requests.post(f"{DataPostAPIROUTE}/elephant-detection", 
-                                                        json=detection_data, timeout=5)
-                                        except Exception as e:
-                                            print(f"Database upload error: {e}")
-                            else:
-                                time_remaining = detection_cooldown - (time.time() - last_alert_time[camera_id])
-                                print(f"Alert cooldown active for {camera_id}. {time_remaining:.1f}s remaining")
+                                # Save detection
+                                detection_data = save_detection(frame, results, camera_id, camera_location, confidence, class_name)
+                                detection_results.append(detection_data)
+                                
+                                print(f"NEW ELEPHANT DETECTED! Camera: {camera_id}, Confidence: {confidence:.2f}")
+                                
+                                # Upload to database
+                                threading.Thread(
+                                    target= upload_to_convex,
+                                    args=(detection_data,),
+                                    daemon=True
+                                ).start()
+
                             
             except Exception as e:
                 print(f"Error processing frame: {e}")
         
         time.sleep(0.1)
 
-async def save_detection(frame, results, camera_id, camera_location, confidence, class_name):
+async def save_detection(frame, results, camera_id, camera_location, confidence):
     """Save detection snapshot"""
     timestamp = datetime.now()
     unique_id = int(timestamp.timestamp() * 1e6)
@@ -229,20 +222,30 @@ async def save_detection(frame, results, camera_id, camera_location, confidence,
     
     # img_url = await upload_to_imgbb(snapshot_path)
     # if not img_url:
-        # img_url = f"/snapshots/{snapshot_filename}"
-    img_url = f"/snapshots/{snapshot_filename}"
+    #     img_url = f"/snapshots/{snapshot_filename}"
+    # img_url = 
+
+
+# {
+#   "camera_id": "5555",
+#   "confidence": 99,
+#   "image_path": "/rtyry",
+#   "image_url": "/jgjhg",
+#   "location": "Baniyani",
+#   "message": "Hello oo",
+#   "timestamp": 76568798,
+#   "type": "all"
+# }
 
     data = {
         "type": "elephant_detection",
         "camera_id": camera_id,
         "location": camera_location,
-        "detected_class": class_name,
         "message": f"Elephant detected with {confidence:.1%} confidence!",
         "confidence": confidence,
         "timestamp": timestamp.isoformat(),
-        "image_url": snapshot_path,
+        "image_path": snapshot_path
     }
-    print(f"Saved detection: {data}")
     await upload_to_convex(data)
 
 @app.get("/")
@@ -307,17 +310,9 @@ async def get_main_camera_stream():
                 
                 if elephant_count > 0:
                     cv2.putText(annotated_frame, f"LIVE: {elephant_count}", (10, 120), font, 0.8, (0, 0, 255), 3)
-                    
-                    # Only save detection if cooldown period has passed
-                    if can_trigger_alert(camera_id):
-                        # Save detection snapshot
-                        await save_detection(annotated_frame, results, camera_id, "Main Entrance", 
-                                        confidence=0.7, class_name="elephant")
-                        update_last_alert_time(camera_id)
-                    else:
-                        # Show cooldown status
-                        time_remaining = detection_cooldown - (time.time() - last_alert_time.get(camera_id, 0))
-                        cv2.putText(annotated_frame, f"Cooldown: {time_remaining:.1f}s", (10, 150), font, 0.6, (255, 255, 0), 2)
+                    # Save detection snapshot
+                    await save_detection(annotated_frame, results, camera_id, "Main Entrance", 
+                                    confidence=0.7)
                                     
             except Exception as e:
                 print(f"Live detection error: {e}")
