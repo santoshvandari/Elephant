@@ -86,6 +86,51 @@ async def upload_to_convex(data):
     except Exception as e:
         print(f"Failed to upload to Convex: {e}")
 
+async def push_notification(data):
+    try:
+        loop = asyncio.get_event_loop()
+        # send message to telegram 
+        payload = {
+            'message': f"Elephant detected at {data['location']} with {data['confidence']:.1%} confidence.",
+        }
+        res = await loop.run_in_executor(
+            executor,
+            lambda: requests.post(
+                os.getenv("TELEGRAM_BOT_MESSAGE_API_ROUTE"),
+                json=payload
+            )
+        )
+        res.raise_for_status()
+        if res.status_code != status.HTTP_200_OK:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+        print("Telegram notification sent successfully")
+
+        # Push notification - Fixed the json.dump to json.dumps
+        notification_payload = json.dumps({
+            'title': 'Elephant Detected!',
+            'body': f"Elephant detected at {data['location']} with {data['confidence']:.1%} confidence.",
+            'redirectUrl': "/mobile"
+        })
+        
+        # Use proper push notification endpoint
+        push_notification_url = os.getenv("PUSH_NOTIFICATION_API_ROUTE", DATABASE_POST_API_ROUTE)
+        
+        res = await loop.run_in_executor(
+            executor,
+            lambda: requests.post(
+                push_notification_url,
+                data=notification_payload,
+                headers={'Content-Type': 'application/json'}
+            )
+        )
+        res.raise_for_status()
+        if res.status_code != status.HTTP_200_OK:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+    
+        print("Push notification sent successfully")
+    except Exception as e:
+        print(f"Failed to send push notification: {e}")
+
 async def upload_to_imgbb(imgpath):
     """Upload image to imgbb and return URL"""
     try:
@@ -174,7 +219,12 @@ def process_detection_async(frame, results, camera_id, camera_location, confiden
             
             # Only upload if enough time has passed
             if should_upload_detection(camera_id):
-                loop.run_until_complete(upload_to_convex(detection_data))
+                # Run notifications and upload concurrently for better performance
+                loop.run_until_complete(asyncio.gather(
+                    push_notification(detection_data),
+                    upload_to_convex(detection_data)
+                ))
+
                 last_upload_time[camera_id] = time.time()
                 print(f"NEW ELEPHANT DETECTED & UPLOADED! Camera: {camera_id}, Confidence: {confidence:.2f}")
             else:
@@ -186,6 +236,7 @@ def process_detection_async(frame, results, camera_id, camera_location, confiden
         finally:
             loop.close()
     
+    # This already runs in background as a daemon thread
     threading.Thread(target=process, daemon=True).start()
 
 def monitor_camera(camera_id, camera_source, camera_location):
@@ -210,7 +261,7 @@ def monitor_camera(camera_id, camera_source, camera_location):
         
         if frame_count % 5 == 0:
             try:
-                results = model.predict(frame, conf=0.7, verbose=False)
+                results = model.predict(frame, conf=0.5, verbose=False)
                 
                 for r in results:
                     if r.boxes is not None and len(r.boxes) > 0:
