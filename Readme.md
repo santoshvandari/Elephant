@@ -1,13 +1,13 @@
-# Nigrani - Elephant Monitoring & Detection System
+# Elephant Monitoring & Detection System
 
-An AI-powered real-time elephant monitoring and detection system that combines computer vision, web technologies, and database integration for wildlife surveillance and conservation efforts. Nigrani serves as a groundbreaking solution for preventing human-wildlife conflicts while promoting peaceful coexistence between communities and elephants.
+An AI-powered real-time elephant monitoring and detection system that combines computer vision, web technologies, and database integration for wildlife surveillance and conservation efforts. EMCS serves as a groundbreaking solution for preventing human-wildlife conflicts while promoting peaceful coexistence between communities and elephants.
 
 ![Elephant Detection System](https://img.shields.io/badge/AI-Powered-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi) ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white) ![YOLO](https://img.shields.io/badge/YOLO-v8-yellow) ![Python](https://img.shields.io/badge/Python-3.12-3776ab?style=flat&logo=python&logoColor=white) ![Conservation](https://img.shields.io/badge/Wildlife-Conservation-green)
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [The Nigrani Solution](#the-nigrani-solution)
+- [The EMCS Solution](#the-emcs-solution)
 - [Features](#features)
 - [System Architecture](#system-architecture)
 - [Technology Stack](#technology-stack)
@@ -27,7 +27,7 @@ An AI-powered real-time elephant monitoring and detection system that combines c
 
 ## Overview
 
-Nigrani is a comprehensive wildlife monitoring solution designed to detect and track elephants in real-time using advanced computer vision techniques. The system processes camera feeds, identifies elephants with high accuracy, captures snapshots, and provides a web-based dashboard for monitoring and management. More importantly, Nigrani serves as a critical tool for preventing human-wildlife conflicts by providing early warning systems to rural communities.
+EMCS is a comprehensive wildlife monitoring solution designed to detect and track elephants in real-time using advanced computer vision techniques. The system processes camera feeds, identifies elephants with high accuracy, captures snapshots, and provides a web-based dashboard for monitoring and management. More importantly, EMCS serves as a critical tool for preventing human-wildlife conflicts by providing early warning systems to rural communities.
 
 ### Key Capabilities
 
@@ -40,7 +40,7 @@ Nigrani is a comprehensive wildlife monitoring solution designed to detect and t
 - **Database Integration**: Stores detection data with Convex backend
 - **Conservation Focus**: Promotes peaceful coexistence between humans and elephants
 
-## The Nigrani Solution
+## The EMCS Solution
 
 ### Problem Statement
 Human-wildlife conflicts, particularly involving elephants, pose significant challenges to rural communities worldwide. These conflicts result in:
@@ -50,16 +50,16 @@ Human-wildlife conflicts, particularly involving elephants, pose significant cha
 - **Economic Losses**: Financial impact on farming communities
 - **Conservation Challenges**: Retaliatory killings affecting elephant populations
 
-### Nigrani's Approach
+### EMCS's Approach
 
 #### Strategic CCTV Deployment
-Nigrani employs a sophisticated Elephant Detection System (EDS) that utilizes Closed-Circuit Television (CCTV) cameras strategically positioned at the periphery of villages. These cameras continuously monitor the surroundings, particularly areas prone to elephant crossings.
+EMCS employs a sophisticated Elephant Detection System (EDS) that utilizes Closed-Circuit Television (CCTV) cameras strategically positioned at the periphery of villages. These cameras continuously monitor the surroundings, particularly areas prone to elephant crossings.
 
 #### Advanced Detection Technology
 Integrated with the CCTV cameras are Raspberry Pi cameras equipped with a specialized elephant detection model. The elephant detection model is trained using machine learning algorithms to recognize the distinctive features and movements of elephants, analyzing live video feeds in real-time to swiftly identify elephant presence within village vicinity.
 
 #### Immediate Alert Mechanism
-Upon detecting elephants, Nigrani triggers a series of immediate alerts to notify villagers and prevent potential conflicts:
+Upon detecting elephants, EMCS triggers a series of immediate alerts to notify villagers and prevent potential conflicts:
 
 - **Audio Alerts**: Sirens blare loudly throughout the village
 - **Visual Alerts**: Bright flashing lights provide unmistakable warning signals
@@ -67,25 +67,25 @@ Upon detecting elephants, Nigrani triggers a series of immediate alerts to notif
 - **Dashboard Updates**: Real-time updates on the web interface
 
 #### Community Engagement
-Nigrani fosters community engagement by:
+EMCS fosters community engagement by:
 - **Involving Villagers**: Active participation in the monitoring process
 - **Authority Notification**: Simultaneous alerts to local authorities and wildlife conservation organizations
 - **Educational Programs**: Awareness campaigns about harmonious coexistence with wildlife
 - **Feedback Systems**: Encouraging villager reports and system effectiveness feedback
 
-### Benefits of Nigrani
+### Benefits of EMCS
 
 ####  Enhanced Safety
-By promptly detecting and alerting villagers to elephant presence, Nigrani significantly reduces the risk of human-wildlife conflicts and potential injuries or fatalities.
+By promptly detecting and alerting villagers to elephant presence, EMCS significantly reduces the risk of human-wildlife conflicts and potential injuries or fatalities.
 
 ####  Minimized Crop Damage
 Timely alerts enable farmers to take preventive measures, such as reinforcing fences or deploying deterrents, minimizing crop damage caused by elephant incursions.
 
 ####  Conservation Efforts
-By mitigating conflicts and promoting peaceful coexistence, Nigrani contributes to wildlife conservation by reducing retaliatory killings and fostering positive conservation attitudes.
+By mitigating conflicts and promoting peaceful coexistence, EMCS contributes to wildlife conservation by reducing retaliatory killings and fostering positive conservation attitudes.
 
 ####  Cost-Effective Solution
-Compared to traditional methods like hiring human guards or erecting physical barriers, Nigrani offers a cost-effective and scalable technology solution for efficient monitoring and alerting.
+Compared to traditional methods like hiring human guards or erecting physical barriers, EMCS offers a cost-effective and scalable technology solution for efficient monitoring and alerting.
 
 ##  Features
 
@@ -574,4 +574,4 @@ We welcome contributions to the EMCS project! Your help can make a real differen
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-The Nigrani system is developed with the intention of promoting wildlife conservation and community safety. We encourage responsible use and welcome collaborations with conservation organizations.
+The EMCS is developed with the intention of promoting wildlife conservation and community safety. We encourage responsible use and welcome collaborations with conservation organizations.
