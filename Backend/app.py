@@ -12,10 +12,16 @@ import time
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 import hashlib
+from convex import ConvexClient
 
 load_dotenv()
 
-DataPostAPIROUTE = os.getenv("DATABASE_POST_API_ROUTE")
+DATABASE_POST_API_ROUTE= os.getenv("DATABASE_POST_API_ROUTE")
+CONVEX_DEPLOYMENT=os.getenv("CONVEX_DEPLOYMENT")
+
+if not DATABASE_POST_API_ROUTE or not CONVEX_DEPLOYMENT:
+    raise ValueError("Environment variables DATABASE_POST_API_ROUTE and CONVEX_DEPLOYMENT must be set.")
+
 
 # Global variables
 model = None
@@ -60,7 +66,14 @@ app.add_middleware(
 app.mount("/snapshots", StaticFiles(directory="snapshots"), name="snapshots")
 
 async def upload_to_convex(data):
-    pass
+    try:
+        client = ConvexClient(DATABASE_POST_API_ROUTE)
+        await client.mutation("elephant_Schema",data)
+        print("Data uploaded to Convex successfully")
+    except Exception as e:
+        print(f"Failed to upload to Convex: {e}")
+
+
 
 async def upload_to_imgbb(imgpath):
     """Upload image to imgbb and return URL"""
@@ -178,12 +191,12 @@ def monitor_camera(camera_id, camera_source, camera_location):
                                 print(f"NEW ELEPHANT DETECTED! Camera: {camera_id}, Confidence: {confidence:.2f}")
                                 
                                 # Upload to database
-                                if DataPostAPIROUTE:
-                                    try:
-                                        requests.post(f"{DataPostAPIROUTE}/elephant-detection", 
-                                                    json=detection_data, timeout=5)
-                                    except Exception as e:
-                                        print(f"Database upload error: {e}")
+                                threading.Thread(
+                                    target= upload_to_convex,
+                                    args=(detection_data,),
+                                    daemon=True
+                                ).start()
+
                             
             except Exception as e:
                 print(f"Error processing frame: {e}")
@@ -204,9 +217,10 @@ async def save_detection(frame, results, camera_id, camera_location, confidence,
     
     cv2.imwrite(snapshot_path, annotated_frame)
     
-    img_url = await upload_to_imgbb(snapshot_path)
-    if not img_url:
-        img_url = f"/snapshots/{snapshot_filename}"
+    # img_url = await upload_to_imgbb(snapshot_path)
+    # if not img_url:
+    #     img_url = f"/snapshots/{snapshot_filename}"
+    # img_url = 
 
     data = {
         "type": "elephant_detection",
@@ -221,6 +235,7 @@ async def save_detection(frame, results, camera_id, camera_location, confidence,
     }
     print(f"Saved detection: {data}")
     await upload_to_convex(data)
+    print(f"Detection data uploaded to Convex: {data}")
 
 @app.get("/")
 async def root():
@@ -239,7 +254,7 @@ async def get_main_camera_stream():
     if camera_id not in active_cameras:
         raise HTTPException(status_code=404, detail="Camera not found")
     
-    def generate_frames():
+    async def generate_frames():
         cap = active_cameras[camera_id]
         
         while True:
@@ -285,7 +300,7 @@ async def get_main_camera_stream():
                 if elephant_count > 0:
                     cv2.putText(annotated_frame, f"LIVE: {elephant_count}", (10, 120), font, 0.8, (0, 0, 255), 3)
                     # Save detection snapshot
-                    save_detection(annotated_frame, results, camera_id, "Main Entrance", 
+                    await save_detection(annotated_frame, results, camera_id, "Main Entrance", 
                                     confidence=0.7, class_name="elephant")
                                     
             except Exception as e:
