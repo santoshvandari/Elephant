@@ -27,7 +27,7 @@ model = None
 active_cameras = {}
 detection_results = []
 recent_detections = set()  # Track recent detection hashes
-detection_cooldown = 5  # Seconds to prevent duplicate detections
+detection_cooldown = 20  # Seconds to prevent duplicate detections
 
 # Create snapshots directory
 snapshot_dir = "snapshots"
@@ -206,7 +206,7 @@ def monitor_camera(camera_id, camera_source, camera_location):
         
         time.sleep(0.1)
 
-async def save_detection(frame, results, camera_id, camera_location, confidence):
+async def save_detection(frame, results, camera_id, camera_location, confidence=0.7):
     """Save detection snapshot"""
     timestamp = datetime.now()
     unique_id = int(timestamp.timestamp() * 1e6)
@@ -220,9 +220,9 @@ async def save_detection(frame, results, camera_id, camera_location, confidence)
     
     cv2.imwrite(snapshot_path, annotated_frame)
     
-    # img_url = await upload_to_imgbb(snapshot_path)
-    # if not img_url:
-    #     img_url = f"/snapshots/{snapshot_filename}"
+    img_url = await upload_to_imgbb(snapshot_path)
+    if not img_url:
+        img_url = f"/snapshots/{snapshot_filename}"
     # img_url = 
 
 
@@ -244,7 +244,7 @@ async def save_detection(frame, results, camera_id, camera_location, confidence)
         "message": f"Elephant detected with {confidence:.1%} confidence!",
         "confidence": confidence,
         "timestamp": timestamp.isoformat(),
-        "image_path": snapshot_path
+        "image_path": img_url,
     }
     await upload_to_convex(data)
 
@@ -312,7 +312,7 @@ async def get_main_camera_stream():
                     cv2.putText(annotated_frame, f"LIVE: {elephant_count}", (10, 120), font, 0.8, (0, 0, 255), 3)
                     # Save detection snapshot
                     await save_detection(annotated_frame, results, camera_id, "Main Entrance", 
-                                    confidence=0.7)
+                                    confidence)
                                     
             except Exception as e:
                 print(f"Live detection error: {e}")
