@@ -11,6 +11,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export async function POST(request) {
   const body = await request.json();
+  console.log("Received body:", body);
 
   try {
     await convex.mutation(api.functions.ElephantData.addElephantData, {
@@ -20,7 +21,7 @@ export async function POST(request) {
       message: body.message,
       timestamp: body.timestamp,
       confidence: body.confidence,
-      image_url: body.image_url,
+      // image_url: body.image_url,
       image_path: body.image_path,
     });
 
@@ -31,7 +32,7 @@ export async function POST(request) {
     });
   } catch (err) {
     console.error("Convex error:", err);
-    return new Response.json({
+    return Response.json({
       status: 500,
       message: "Error adding data",
       success: false,

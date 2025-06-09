@@ -8,9 +8,9 @@ export const addElephantData = mutation({
     camera_id: v.string(),
     location: v.string(),
     message: v.string(),
-    timestamp: v.number(),
+    timestamp: v.string(),
     confidence: v.number(),
-    image_url: v.string(),
+    // image_url: v.string(),
     image_path: v.string(),
   },
   handler: async (ctx, args) => {
