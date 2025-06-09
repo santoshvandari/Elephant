@@ -7,8 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata = {
   title: "Mechi Mavericks - Elephant Admin",
   description: "Elephant Monitoring & Detection System",
-}
-
+};
 
 export default function RootLayout({ children }) {
   return (

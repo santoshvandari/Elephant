@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as functions_ElephantData from "../functions/ElephantData.js";
+import type * as functions_tokenData from "../functions/tokenData.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -25,6 +26,7 @@ import type * as functions_ElephantData from "../functions/ElephantData.js";
  */
 declare const fullApi: ApiFromModules<{
   "functions/ElephantData": typeof functions_ElephantData;
+  "functions/tokenData": typeof functions_tokenData;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

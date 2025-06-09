@@ -4,19 +4,6 @@ import { api } from "../../../../convex/_generated/api"; // Adjust path if neede
 // import { addElephantData } from "../../../../convex/functions/ElephantData"; // Adjust path if needed
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
-console.log("Convex URL:", process.env.NEXT_PUBLIC_CONVEX_URL);
-
-export async function GET() {
-  try {
-    const data = await convex.query(api.functions.ElephantData.getAlerts);
-    return Response.json(data);
-  } catch (err) {
-    console.error("Convex error:", err);
-    return Response.json({ error: "Failed to fetch data" }, { status: 500 });
-  }
-
-  return Response.json({ message: "Hello from the Elephant API!" });
-}
 
 export async function POST(request) {
   const body = await request.json();
@@ -24,14 +11,14 @@ export async function POST(request) {
 
   try {
     await convex.mutation(api.functions.ElephantData.addElephantData, {
-      type: body.type,
-      camera_id: body.camera_id,
-      location: body.location,
-      message: body.message,
-      timestamp: body.timestamp,
-      confidence: body.confidence,
+      type: body.type || "Unknown",
+      camera_id: body.camera_id || "Unknown",
+      location: body.location || "Unknown",
+      message: body.message || "No message",
+      timestamp: body.timestamp || Date.now(),
+      confidence: body.confidence || 0,
       // image_url: body.image_url,
-      image_path: body.image_path,
+      image_path: body.image_path || "No image path",
     });
 
     return Response.json({
