@@ -1,4 +1,4 @@
-# Nigrani - Elephant Monitoring & Detection System
+# Elephant Monitoring & Detection System
 
 An AI-powered real-time elephant monitoring and detection system that combines computer vision, web technologies, and database integration for wildlife surveillance and conservation efforts. Nigrani serves as a groundbreaking solution for preventing human-wildlife conflicts while promoting peaceful coexistence between communities and elephants.
 
