@@ -13,4 +13,7 @@ export default defineSchema({
     // image_url: v.string(),
     image_path: v.string(),
   }),
+  token_Schema: defineTable({
+    token: v.string(),
+  }),
 });
