@@ -12,14 +12,13 @@ import time
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 import hashlib
-from convex import ConvexClient
+import json
 
 load_dotenv()
 
 DATABASE_POST_API_ROUTE= os.getenv("DATABASE_POST_API_ROUTE")
-CONVEX_DEPLOYMENT=os.getenv("CONVEX_DEPLOYMENT")
 
-if not DATABASE_POST_API_ROUTE or not CONVEX_DEPLOYMENT:
+if not DATABASE_POST_API_ROUTE:
     raise ValueError("Environment variables DATABASE_POST_API_ROUTE and CONVEX_DEPLOYMENT must be set.")
 
 
@@ -67,8 +66,12 @@ app.mount("/snapshots", StaticFiles(directory="snapshots"), name="snapshots")
 
 async def upload_to_convex(data):
     try:
-        client = ConvexClient(DATABASE_POST_API_ROUTE)
-        await client.mutation("elephant_Schema",data)
+        payload = json.dumps(data)
+        res=requests.post(DATABASE_POST_API_ROUTE,payload)
+        res.raise_for_status()
+        if res.status_code != status.HTTP_200_OK:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+
         print("Data uploaded to Convex successfully")
     except Exception as e:
         print(f"Failed to upload to Convex: {e}")
@@ -203,7 +206,7 @@ def monitor_camera(camera_id, camera_source, camera_location):
         
         time.sleep(0.1)
 
-async def save_detection(frame, results, camera_id, camera_location, confidence, class_name):
+async def save_detection(frame, results, camera_id, camera_location, confidence):
     """Save detection snapshot"""
     timestamp = datetime.now()
     unique_id = int(timestamp.timestamp() * 1e6)
@@ -222,20 +225,28 @@ async def save_detection(frame, results, camera_id, camera_location, confidence,
     #     img_url = f"/snapshots/{snapshot_filename}"
     # img_url = 
 
+
+# {
+#   "camera_id": "5555",
+#   "confidence": 99,
+#   "image_path": "/rtyry",
+#   "image_url": "/jgjhg",
+#   "location": "Baniyani",
+#   "message": "Hello oo",
+#   "timestamp": 76568798,
+#   "type": "all"
+# }
+
     data = {
         "type": "elephant_detection",
         "camera_id": camera_id,
         "location": camera_location,
-        "detected_class": class_name,
         "message": f"Elephant detected with {confidence:.1%} confidence!",
         "confidence": confidence,
         "timestamp": timestamp.isoformat(),
-        "image_path": snapshot_path,
-        "image_url": f"/snapshots/{snapshot_filename}"
+        "image_path": snapshot_path
     }
-    print(f"Saved detection: {data}")
     await upload_to_convex(data)
-    print(f"Detection data uploaded to Convex: {data}")
 
 @app.get("/")
 async def root():
@@ -301,7 +312,7 @@ async def get_main_camera_stream():
                     cv2.putText(annotated_frame, f"LIVE: {elephant_count}", (10, 120), font, 0.8, (0, 0, 255), 3)
                     # Save detection snapshot
                     await save_detection(annotated_frame, results, camera_id, "Main Entrance", 
-                                    confidence=0.7, class_name="elephant")
+                                    confidence=0.7)
                                     
             except Exception as e:
                 print(f"Live detection error: {e}")
