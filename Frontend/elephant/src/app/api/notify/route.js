@@ -54,6 +54,8 @@ export async function POST(request) {
       ...message, // Spread the common message properties
     });
 
+    console.log("Push notification response:", response);
+
     return Response.json({
       message: "Push notification sent successfully",
       successCount: response.successCount,

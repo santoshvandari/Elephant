@@ -191,7 +191,7 @@ function AlertPage() {
                           : ""
                     }
                   >
-                    {alert?.confidence}% Confidence
+                    {(alert?.confidence * 100).toFixed(0)}% Confidence
                   </Badge>
                   <Badge
                     variant="outline"

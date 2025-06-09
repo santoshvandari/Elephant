@@ -7,6 +7,19 @@ export const addToken = mutation({
     token: v.string(),
   },
   handler: async (ctx, args) => {
+    // Check if the token already exists
+    const existing = await ctx.db
+      .query("token_Schema")
+      .filter((q) => q.eq(q.field("token"), args.token))
+      .first();
+
+    if (existing) {
+      return {
+        message: "Token already exists",
+        success: false,
+      };
+    }
+
     return await ctx.db.insert("token_Schema", args);
   },
 });
