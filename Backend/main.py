@@ -107,13 +107,13 @@ async def push_notification(data):
 
         # Push notification - Fixed the json.dump to json.dumps
         notification_payload = json.dumps({
-            'title': 'Elephant Detected!',
-            'body': f"Elephant detected at {data['location']} with {data['confidence']:.1%} confidence.",
-            'redirectUrl': "/mobile"
+            "title": "Elephant Detected!",
+            "body": f"Elephant detected at {data['location']} with {data['confidence']:.1%} confidence.",
+            "redirectUrl": "/mobile"
         })
         
         # Use proper push notification endpoint
-        push_notification_url = os.getenv("PUSH_NOTIFICATION_API_ROUTE", DATABASE_POST_API_ROUTE)
+        push_notification_url = os.getenv("NOTIFICATIONS_API_ROUTE")
         
         res = await loop.run_in_executor(
             executor,
