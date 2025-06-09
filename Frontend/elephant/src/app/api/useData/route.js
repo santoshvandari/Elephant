@@ -3,11 +3,20 @@ import { ConvexHttpClient } from "convex/browser"; // Yes, even on server
 import { api } from "../../../../convex/_generated/api"; // Adjust path if needed
 // import { addElephantData } from "../../../../convex/functions/ElephantData"; // Adjust path if needed
 
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+console.log("Convex URL:", process.env.NEXT_PUBLIC_CONVEX_URL);
+
 export async function GET() {
+  try {
+    const data = await convex.query(api.functions.ElephantData.getAlerts);
+    return Response.json(data);
+  } catch (err) {
+    console.error("Convex error:", err);
+    return Response.json({ error: "Failed to fetch data" }, { status: 500 });
+  }
+
   return Response.json({ message: "Hello from the Elephant API!" });
 }
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export async function POST(request) {
   const body = await request.json();

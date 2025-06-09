@@ -10,7 +10,20 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, Clock, X } from "lucide-react";
 import AlertPage from "./AlertPage";
 
-export default function AlertsPage() {
+export async function getAlerts() {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/useData`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch alerts");
+  }
+
+  return res.json();
+}
+
+export default async function AlertsPage() {
+  const alerts = await getAlerts();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
