@@ -139,7 +139,7 @@ function AlertPage() {
             </CardHeader>
             <div className="flex p-4">
               <img
-                src={alert?.image_url}
+                src={alert?.image_url || "https://cdn.britannica.com/05/152305-050-0E7CC0FC/African-savanna-elephant-Botswana.jpg"}
                 alt="Alert Image"
                 className="w-62  rounded-3xl object-cover mb-4"
               />

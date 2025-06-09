@@ -11,7 +11,7 @@ function CameraModal({ open, onClose, onSubmit, initialData, isEdit }) {
   const [name, setName] = useState(initialData?.name || "")
   const [location, setLocation] = useState(initialData?.location || "")
 
-  // Reset fields when modal opens/closes or initialData changes
+  // Reset fields when modal opens/closes or initialData+ changes
   React.useEffect(() => {
     setIp(initialData?.ip || "")
     setName(initialData?.name || "")
