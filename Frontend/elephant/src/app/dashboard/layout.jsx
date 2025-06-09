@@ -8,8 +8,10 @@ export default function DashboardLayout({ children }) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <DashboardHeader />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
+
+        <ConvexClientProvider>
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-10">{children}</div>
+        </ConvexClientProvider>
       </SidebarInset>
     </SidebarProvider>
   );
