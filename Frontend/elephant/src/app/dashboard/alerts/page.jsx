@@ -33,10 +33,10 @@ export default async function AlertsPage() {
             Monitor and respond to security alerts
           </p>
         </div>
-        <Button>
+        {/* <Button>
           <CheckCircle className="h-4 w-4 mr-2" />
           Mark All Read
-        </Button>
+        </Button> */}
       </div>
       {/* Alert Summary */}
 

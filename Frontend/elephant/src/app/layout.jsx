@@ -5,9 +5,10 @@ import ConvexClientProvider from "./dashboard/ConvexProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Security Admin Dashboard",
-  description: "Admin dashboard for security management",
-};
+  title: "Mechi Mavericks - Elephant Admin",
+  description: "Elephant Monitoring & Detection System",
+}
+
 
 export default function RootLayout({ children }) {
   return (
