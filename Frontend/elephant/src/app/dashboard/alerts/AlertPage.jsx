@@ -1,7 +1,7 @@
 "use client";
 import { api } from "../../../../convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
-import React from "react";
+import { useQuery } from "convex/react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -13,19 +13,94 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, X } from "lucide-react";
 import { CheckCircle, Clock } from "lucide-react";
-import { useRouter } from "next/navigation";
 import moment from "moment";
 
 function AlertPage() {
+  const [recentAlerts, setRecentAlerts] = useState([]);
+  const [showPopup, setShowPopup] = useState(false);
+  const [hasPlayedSound, setHasPlayedSound] = useState(false);
+  const audioRef = useRef(null);
+
   const alerts = useQuery(api.functions.ElephantData.getAlerts);
-  if (!alerts) {
-    return <div>Loading...</div>;
-  }
-  if (alerts.length === 0) {
-    return <div>No alerts found.</div>;
-  }
+
+  // Load siren audio
+  useEffect(() => {
+    audioRef.current = new Audio("/siren.mp3");
+  }, []);
+
+  useEffect(() => {
+    if (!alerts || alerts.length === 0) {
+      setShowPopup(false);
+      return;
+    }
+
+    const now = moment();
+    const recent = alerts.filter(
+      (alert) => now.diff(moment(alert._creationTime), "seconds") < 20
+    );
+
+    if (recent.length > 0) {
+      setRecentAlerts(recent);
+      setShowPopup(true);
+
+      // Play siren only once per show
+      if (!hasPlayedSound && audioRef.current) {
+        audioRef.current.play();
+        setHasPlayedSound(true);
+      }
+
+      const timeout = setTimeout(() => {
+        setShowPopup(false);
+        setHasPlayedSound(false); // Reset sound flag for next popup
+      }, 20000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [alerts]);
+
+  if (!alerts) return <div>Loading...</div>;
+  if (alerts.length === 0) return <div>No alerts found.</div>;
+
   return (
     <div>
+      {showPopup && (
+        <div className="fixed top-0 left-0 h-screen z-50 w-full bg-black/50 backdrop-blur-md flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <strong className="font-bold">New Elephant Detected!</strong>
+            <div className="mt-2 text-sm overflow-y-auto max-h-96">
+              {recentAlerts.map((alert) => (
+                <div
+                  key={alert._id}
+                  className="mb-2 bg-accent p-2 rounded flex flex-col gap-3"
+                >
+                  <img
+                    src={alert?.image_path}
+                    alt={alert?.message}
+                    className="w-full h-auto rounded"
+                  />
+                  <div>
+                    {alert.message} – {moment(alert._creationTime).fromNow()}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button
+              className="mt-4"
+              onClick={() => {
+                setShowPopup(false);
+                setHasPlayedSound(false); // Reset sound flag when closing popup
+                if (audioRef.current) {
+                  audioRef.current.pause();
+                  audioRef.current.currentTime = 0; // Reset audio to start
+                }
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -139,7 +214,7 @@ function AlertPage() {
             </CardHeader>
             <div className="flex p-4">
               <img
-                src={process.env.NEXT_PUBLIC_BACKEND + alert?.image_path}
+                src={alert?.image_path}
                 alt="Alert Image"
                 className="w-62  rounded-3xl object-cover mb-4"
               />
