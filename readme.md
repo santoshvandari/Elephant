@@ -29,3 +29,32 @@ Node.js and npm (Node Package Manager) installed on your machine.
 Python and pip (Python Package Manager) installed on your machine.
 Git installed on your machine.
 Access to the EDMS GitHub repository.
+
+To use the project
+
+For Linux and recommended
+
+python -m venv elephantenv
+
+cd to the elephantenv
+
+source bin/activate
+
+python3 main.py
+
+For Windows
+
+git clone url
+
+cd Backend
+
+python main.py
+
+
+For Frontend
+
+cd Frontend
+
+npm i 
+
+npm run dev
