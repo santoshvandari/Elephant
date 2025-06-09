@@ -30,6 +30,9 @@ active_cameras = {}
 detection_results = []
 recent_detections = set()
 detection_cooldown = 20
+# New: Track last upload time per camera
+last_upload_time = {}
+upload_interval = 10  # 10 seconds between uploads
 executor = ThreadPoolExecutor(max_workers=4)
 
 # Create snapshots directory
@@ -133,6 +136,16 @@ def is_duplicate_detection(detection_hash):
     
     return False
 
+def should_upload_detection(camera_id):
+    """Check if enough time has passed since last upload for this camera"""
+    current_time = time.time()
+    
+    if camera_id not in last_upload_time:
+        last_upload_time[camera_id] = 0
+    
+    time_since_last_upload = current_time - last_upload_time[camera_id]
+    return time_since_last_upload >= upload_interval
+
 async def start_camera_monitoring():
     """Start monitoring camera"""
     cameras_config = [
@@ -159,8 +172,14 @@ def process_detection_async(frame, results, camera_id, camera_location, confiden
             )
             detection_results.append(detection_data)
             
-            loop.run_until_complete(upload_to_convex(detection_data))
-            print(f"NEW ELEPHANT DETECTED! Camera: {camera_id}, Confidence: {confidence:.2f}")
+            # Only upload if enough time has passed
+            if should_upload_detection(camera_id):
+                loop.run_until_complete(upload_to_convex(detection_data))
+                last_upload_time[camera_id] = time.time()
+                print(f"NEW ELEPHANT DETECTED & UPLOADED! Camera: {camera_id}, Confidence: {confidence:.2f}")
+            else:
+                time_remaining = upload_interval - (time.time() - last_upload_time[camera_id])
+                print(f"Elephant detected but not uploaded (cooldown: {time_remaining:.1f}s remaining). Camera: {camera_id}, Confidence: {confidence:.2f}")
             
         except Exception as e:
             print(f"Error processing detection: {e}")
@@ -264,7 +283,8 @@ async def root():
         "message": "Elephant Detection System",
         "status": "running",
         "active_cameras": len(active_cameras),
-        "total_detections": len(detection_results)
+        "total_detections": len(detection_results),
+        "last_upload_times": {k: datetime.fromtimestamp(v).isoformat() if v > 0 else "Never" for k, v in last_upload_time.items()}
     }
 
 @app.get("/main/")
@@ -346,7 +366,14 @@ def process_frame_annotation(frame, results, camera_id):
     
     cv2.putText(annotated_frame, now, (10, 30), font, 0.6, (0, 255, 0), 2)
     cv2.putText(annotated_frame, f"Camera: {camera_id}", (10, 60), font, 0.6, (0, 255, 0), 2)
-    cv2.putText(annotated_frame, f"Total Saved: {len(detection_results)}", (10, 90), font, 0.6, (0, 255, 0), 2)
+    
+    # Show upload cooldown status
+    camera_id_key = camera_id
+    if camera_id_key in last_upload_time and last_upload_time[camera_id_key] > 0:
+        time_since_upload = time.time() - last_upload_time[camera_id_key]
+        if time_since_upload < upload_interval:
+            cooldown_remaining = upload_interval - time_since_upload
+            cv2.putText(annotated_frame, f"Upload cooldown: {cooldown_remaining:.1f}s", (10, 150), font, 0.5, (255, 165, 0), 2)
     
     if elephant_count > 0:
         cv2.putText(annotated_frame, f"LIVE: {elephant_count}", (10, 120), font, 0.8, (0, 0, 255), 3)
