@@ -1,9 +1,15 @@
 import { admin, messaging } from "lib/firebase-admin-config";
+import { ConvexHttpClient } from "convex/browser"; // Yes, even on server
+import { api } from "../../../../convex/_generated/api"; // Adjust path if needed
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export async function POST(request) {
   try {
     const res = await request.json();
-    const { token, title, body, redirectUrl } = res;
+    const token = await convex.query(api.functions.tokenData.getToken);
+
+    const { title, body, redirectUrl } = res;
     if (!token || !title || !body || !redirectUrl) {
       return Response.json(
         {
