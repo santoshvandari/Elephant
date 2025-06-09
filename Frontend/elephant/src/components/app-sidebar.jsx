@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -16,7 +15,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
 
 const navigationItems = [
   {
@@ -28,11 +26,6 @@ const navigationItems = [
     title: "Cameras",
     url: "/dashboard/cameras",
     icon: Camera,
-  },
-  {
-    title: "Logs",
-    url: "/dashboard/logs",
-    icon: FileText,
   },
   {
     title: "Alerts",
@@ -79,20 +72,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Log Out
-            </Button>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+     
     </Sidebar>
   )
 }
