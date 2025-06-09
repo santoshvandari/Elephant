@@ -4,14 +4,12 @@
 import { useEffect, useState } from "react";
 import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "lib/firebase-cm";
-import { useMutation } from "convex/react";
-import { api } from "../convex/_generated/api";
 
 // Get your VAPID public key from Firebase Console -> Project settings -> Cloud Messaging -> Web Push certificates
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
 const NotificationPermission = () => {
-  const addToken = useMutation(api.functions.tokenData.addToken);
+  const [fcmToken, setFcmToken] = useState(null);
 
   useEffect(() => {
     const requestPermission = async () => {
@@ -29,21 +27,8 @@ const NotificationPermission = () => {
 
           // Get the FCM token
           const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-          if (!token) {
-            console.warn(
-              "No registration token available. Request permission to generate one."
-            );
-            return;
-          }
-
-          const response = await addToken({
-            token: token,
-          });
-          if (response) {
-            console.log("Token added successfully:", response);
-          } else {
-            console.error("Failed to add token.");
-          }
+          setFcmToken(token);
+          console.log("FCM Token:", token);
 
           // Send this token to your backend to store it,
           // so you can send targeted notifications later.
@@ -71,7 +56,15 @@ const NotificationPermission = () => {
     requestPermission();
   }, []);
 
-  return <div></div>;
+  return (
+    <div>
+      {fcmToken ? (
+        <p>FCM Token: {fcmToken}</p>
+      ) : (
+        <p>Requesting notification permission...</p>
+      )}
+    </div>
+  );
 };
 
 export default NotificationPermission;

@@ -1,15 +1,9 @@
 import { admin, messaging } from "lib/firebase-admin-config";
-import { ConvexHttpClient } from "convex/browser"; // Yes, even on server
-import { api } from "../../../../convex/_generated/api"; // Adjust path if needed
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export async function POST(request) {
   try {
     const res = await request.json();
-    const token = await convex.query(api.functions.tokenData.getToken);
-
-    const { title, body, redirectUrl } = res;
+    const { token, title, body, redirectUrl } = res;
     if (!token || !title || !body || !redirectUrl) {
       return Response.json(
         {
@@ -53,8 +47,6 @@ export async function POST(request) {
       tokens: token, // Pass the array of tokens here
       ...message, // Spread the common message properties
     });
-
-    console.log("Push notification response:", response);
 
     return Response.json({
       message: "Push notification sent successfully",
