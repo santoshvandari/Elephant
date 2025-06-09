@@ -4,8 +4,8 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Security Admin Dashboard",
-  description: "Admin dashboard for security management",
+  title: "Mechi Mavericks - Elephant Admin",
+  description: "Elephant Detection System",
 }
 
 export default function RootLayout({ children }) {
