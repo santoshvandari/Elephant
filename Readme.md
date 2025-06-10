@@ -2,7 +2,6 @@
 
 An AI-powered real-time elephant monitoring and detection system that combines computer vision, web technologies, and database integration for wildlife surveillance and conservation efforts. EMCS serves as a groundbreaking solution for preventing human-wildlife conflicts while promoting peaceful coexistence between communities and elephants.
 
-![Elephant Detection System](https://img.shields.io/badge/AI-Powered-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi) ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white) ![YOLO](https://img.shields.io/badge/YOLO-v8-yellow) ![Python](https://img.shields.io/badge/Python-3.12-3776ab?style=flat&logo=python&logoColor=white) ![Conservation](https://img.shields.io/badge/Wildlife-Conservation-green)
 
 ## Table of Contents
 
@@ -33,7 +32,6 @@ EMCS is a comprehensive wildlife monitoring solution designed to detect and trac
 
 - **Real-time Detection**: Processes live camera feeds using YOLOv8 models
 - **Multi-camera Support**: Monitor multiple camera sources simultaneously
-- **Intelligent Filtering**: Prevents duplicate detections with smart cooldown mechanisms
 - **Community Alert System**: Automated sirens and visual alerts for village protection
 - **Cloud Integration**: Automatic snapshot upload to external services
 - **Modern Web Interface**: Responsive dashboard built with Next.js and React
@@ -76,10 +74,10 @@ EMCS fosters community engagement by:
 ### Benefits of EMCS
 
 ####  Enhanced Safety
-By promptly detecting and alerting villagers to elephant presence, EMCS significantly reduces the risk of human-wildlife conflicts and potential injuries or fatalities.
+By detecting and alerting villagers to elephant presence, EMCS significantly reduces the risk of human-wildlife conflicts and potential injuries or fatalities.
 
 ####  Minimized Crop Damage
-Timely alerts enable farmers to take preventive measures, such as reinforcing fences or deploying deterrents, minimizing crop damage caused by elephant incursions.
+Timely alerts enable farmers to take preventive measures, such as deploying nboise or light, minimizing crop damage caused by elephant incursions.
 
 ####  Conservation Efforts
 By mitigating conflicts and promoting peaceful coexistence, EMCS contributes to wildlife conservation by reducing retaliatory killings and fostering positive conservation attitudes.
@@ -92,25 +90,19 @@ Compared to traditional methods like hiring human guards or erecting physical ba
 ###  Detection Engine
 - **YOLOv8 Integration**: State-of-the-art object detection
 - **Custom Elephant Model**: Specialized model trained for elephant detection
-- **Multiple Model Sizes**: Support for small, medium, and large models (s.pt, m.pt, best.pt)
-- **Confidence Thresholding**: Configurable detection confidence levels
 - **Frame Optimization**: Intelligent frame processing for performance
 - **Real-time Analysis**: Continuous monitoring with minimal latency
 
 ###  Camera Management
 - **Multi-camera Support**: Connect and monitor multiple IP cameras and Raspberry Pi cameras
-- **Live Streaming**: Real-time MJPEG video streams
+- **Live Streaming**: Real-time video streams
 - **Camera Status Monitoring**: Online/offline status tracking
-- **Stream Refresh**: Manual and automatic stream refresh capabilities
-- **Full-screen Viewing**: Expandable camera views
 - **Perimeter Coverage**: Strategic positioning for maximum detection coverage
 
 ###  Alert System
 - **Audio Alerts**: Integrated siren system for immediate audible warnings
 - **Visual Alerts**: Bright flashing lights for visual confirmation
 - **Multi-channel Notifications**: Telegram, web dashboard, and local alerts
-- **Escalation Protocols**: Progressive alert levels based on proximity and threat assessment
-- **Community Broadcasting**: Village-wide alert distribution system
 
 ###  Web Dashboard
 - **Modern UI**: Beautiful, responsive interface with Tailwind CSS
@@ -118,15 +110,12 @@ Compared to traditional methods like hiring human guards or erecting physical ba
 - **Camera Configuration**: Easy camera addition and management
 - **Detection History**: View past detections and snapshots
 - **Mobile Responsive**: Works seamlessly on all devices
-- **Alert Management**: Configure and monitor alert systems
 
-### 🔗 Integrations
+### Integrations
 - **Database Storage**: Convex integration for data persistence
 - **Image Hosting**: ImgBB integration for snapshot storage
 - **Notifications**: Telegram bot for instant alerts
 - **RESTful API**: FastAPI backend with comprehensive endpoints
-- **IoT Integration**: Raspberry Pi and sensor connectivity
-- **Conservation Platforms**: Integration with wildlife monitoring systems
 
 ## System Architecture
 
@@ -148,11 +137,11 @@ Village Perimeter Cameras
                 └─────────┘ └──────┘ └───────┘
                        │
               ┌────────┼────────┐
-              │        │        │
-       ┌──────▼──┐ ┌───▼───┐ ┌──▼────┐
-       │ Sirens  │ │Lights │ │Telegram│
-       │ System  │ │Alert  │ │ Alerts │
-       └─────────┘ └───────┘ └───────┘
+              │                 │
+       ┌──────▼──┐           ┌──▼────┐
+       │ Sirens  │           │Telegram│
+       │ System  │           │ Alerts │
+       └─────────┘           └───────┘
 ```
 
 ##  Technology Stack
@@ -163,14 +152,10 @@ Village Perimeter Cameras
 - **Ultralytics YOLO**: State-of-the-art object detection
 - **OpenCV**: Computer vision and image processing
 - **Asyncio**: Asynchronous programming for concurrent operations
-- **Raspberry Pi Integration**: IoT device connectivity
 
 ### Frontend
 - **Next.js 15**: React framework with app router
-- **React 19**: Modern UI library
 - **Tailwind CSS**: Utility-first CSS framework
-- **Shadcn/ui**: High-quality UI component library
-- **Lucide React**: Beautiful icon library
 
 ### Database & Services
 - **Convex**: Real-time database and backend platform
